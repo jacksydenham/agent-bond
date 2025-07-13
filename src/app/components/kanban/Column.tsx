@@ -14,13 +14,19 @@ export default function Column({ id, label, items, activeId }: ColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id });
 
   return (
-    <div className="flex w-72 flex-col gap-3">
-      <h2 className="px-1 text-sm font-medium text-neutral-300">{label}</h2>
+    <div className="flex flex-col w-full max-w-xs mx-auto">
+      <h2 className="mb-4 text-2xl font-bold text-white tracking-tight">
+        {label}
+      </h2>
+
       <div
         ref={setNodeRef}
-        className={`flex flex-col gap-3 min-h-[200px] rounded-lg p-3 transition-colors ${
-          isOver ? "bg-blue-900/60" : "bg-neutral-950/60"
-        }`}
+        className={`flex flex-col gap-3 min-h-[200px] rounded-lg p-4 transition-all backdrop-blur-sm
+          ${
+            isOver
+              ? "bg-yellow-500/10 border-2 border-yellow-500 border-dashed shadow-inner"
+              : "bg-white/5 border border-white/10"
+          }`}
       >
         {items.map((item) => (
           <SortableCard

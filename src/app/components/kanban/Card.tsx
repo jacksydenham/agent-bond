@@ -1,4 +1,3 @@
-// src/components/kanban/Card.tsx
 "use client";
 
 import { forwardRef, HTMLAttributes } from "react";
@@ -19,7 +18,8 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
       style={style}
       data-card-id={id}
       className={cn(
-        "rounded-md border border-neutral-800 bg-neutral-900 px-4 py-3 text-sm shadow-md transition-colors hover:border-neutral-700",
+        "rounded-lg border border-white/10 bg-white/5 px-6 py-4 text-sm text-white shadow-lg backdrop-blur-sm transition-all",
+        "hover:border-white/20 hover:bg-white/10",
         className
       )}
       {...props}

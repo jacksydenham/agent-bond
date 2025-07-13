@@ -1,6 +1,4 @@
-// src/app/layout.tsx
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Great_Vibes } from "next/font/google";
 import "src/app/globals.css";
 
 const geistSans = Geist({
@@ -12,10 +10,11 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "AutoTask Kanban",
-  description: "Interactive Kanban powered by SyncStack",
-};
+export const greatVibes = Great_Vibes({
+  weight: "400",
+  subsets: ["latin"],
+  display: "swap",
+});
 
 export default function RootLayout({
   children,

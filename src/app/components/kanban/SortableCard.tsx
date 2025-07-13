@@ -4,6 +4,7 @@ import { defaultAnimateLayoutChanges, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { CSSProperties } from "react";
 import Card from "./Card";
+import { cn } from "src/app/lib/utils";
 
 function customAnimateLayoutChanges(args: any) {
   if (args.isSorting || args.wasDragging) {
@@ -42,7 +43,11 @@ export default function SortableCard({
       id={id}
       title={title}
       style={style}
-      className={isActive ? "cursor-grabbing opacity-50" : "cursor-grab"}
+      className={cn(
+        isActive
+          ? "cursor-grabbing opacity-50 shadow-2xl"
+          : "cursor-grab",
+      )}
       {...attributes}
       {...listeners}
     />

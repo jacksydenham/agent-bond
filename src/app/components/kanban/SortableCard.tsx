@@ -9,7 +9,7 @@ function customAnimateLayoutChanges(args: any) {
   if (args.isSorting || args.wasDragging) {
     return defaultAnimateLayoutChanges(args);
   }
-  return true; // also animate cross-column inserts/removals
+  return true;
 }
 
 export default function SortableCard({

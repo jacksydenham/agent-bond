@@ -19,7 +19,7 @@ export default function Column({ id, label, items, activeId }: ColumnProps) {
       <div
         ref={setNodeRef}
         className={`flex flex-col gap-3 min-h-[200px] rounded-lg p-3 transition-colors ${
-          isOver ? "bg-neutral-900/60" : "bg-neutral-950/60"
+          isOver ? "bg-blue-900/60" : "bg-neutral-950/60"
         }`}
       >
         {items.map((item) => (

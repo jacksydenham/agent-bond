@@ -3,7 +3,8 @@ import {
   DndContext,
   DragStartEvent,
   DragOverEvent,
-  closestCenter,
+  DragEndEvent,
+  pointerWithin,
   PointerSensor,
   useSensor,
   useSensors,
@@ -71,27 +72,41 @@ export default function Board() {
 
   // HandleDragOver:
   function handleDragOver(event: DragOverEvent) {
-    if (!event.over) return;
-
     const itemId = event.active.id as string;
-    const toCol = event.over.id as string; // your Column’s droppable id
     const fromCol = Object.entries(columns).find(([, items]) =>
       items.some((i) => i.id === itemId)
     )![0];
 
-    if (fromCol !== toCol) {
+    // event = column id
+    if (event.over) {
+      const toCol = event.over.id as string;
       setActiveData({ fromCol, toCol, itemId });
+    } else {
+      // return to og column if none hovered
+      setActiveData({ fromCol, toCol: fromCol, itemId });
     }
   }
 
-  function handleDragEnd() {
-    // Only update the state when the drag is completed
+  function handleDragEnd(event: DragEndEvent) {
     if (activeData) {
       const { fromCol, toCol, itemId } = activeData;
-
-      setColumns((prev) => {
-        const item = prev[fromCol]?.find((i) => i.id === itemId);
+      const isValidColumn = Object.keys(columns).includes(toCol);
+      
+      setColumns((prev) => {        
+        const item = prev[fromCol].find((i) => i.id === itemId);
         if (!item) return prev; // Return previous state if item not found
+        
+        // return to prev column if drop invalid
+        if (fromCol === toCol || !isValidColumn || !event.over) return prev;
+
+        // Ensure prev[toCol] exists and is an array
+        if (!prev[toCol] || !Array.isArray(prev[toCol])) {
+          return {
+            ...prev,
+            [fromCol]: prev[fromCol].filter((i) => i.id !== itemId),
+            [toCol]: [item],
+          };
+        }
 
         return {
           ...prev,
@@ -110,7 +125,7 @@ export default function Board() {
     <DndContext
       measuring={measuring}
       sensors={sensors}
-      collisionDetection={closestCenter}
+      collisionDetection={pointerWithin}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}

@@ -16,7 +16,7 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Column from "./Column";
 import Card from "./Card";
 import { Item } from "./types";
@@ -47,8 +47,8 @@ const columnLabels: Record<string, string> = {
   done: "Done",
 };
 
-export default function Board() {
-  const [columns, setColumns] = useState(initialColumns);
+interface BoardProps { isLive: boolean }
+export default function Board({ isLive }: BoardProps) {  const [columns, setColumns] = useState(initialColumns);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeData, setActiveData] = useState<{
     fromCol: string;
@@ -57,7 +57,8 @@ export default function Board() {
   } | null>(null);
   const [activeItem, setActiveItem] = useState<Item | null>(null);
 
-  const [isLive, setIsLive] = useState(false);
+  const [isMoving, setIsMoving] = useState(false);
+
   const [events, setEvents] = useState<string[]>([]);
 
   // move event
@@ -69,6 +70,27 @@ export default function Board() {
   // dampened drag consts
   const sensors = useSensors(useSensor(PointerSensor));
   const measuring = { droppable: { strategy: MeasuringStrategy.Always } };
+
+  // reload the entire board from Jira
+  async function loadBoard() {
+    try {
+      const res = await fetch("/api/jira/board");
+      const { columns } = await res.json();
+      setColumns(columns);
+    } catch (err) {
+      console.error("Failed to reload board:", err);
+    }
+  }
+
+  useEffect(() => {
+    if (!isLive) return;
+    setIsMoving(true);
+    loadBoard()
+      .catch(console.error)
+      .finally(() => {
+        setIsMoving(false);
+      });
+  }, [isLive]);
 
   // pickup
   function handleDragStart(event: DragStartEvent) {
@@ -91,87 +113,111 @@ export default function Board() {
   }
 
   // drop
-  function handleDragEnd(event: DragEndEvent) {
-    if (activeData) {
+  async function handleDragEnd(event: DragEndEvent) {
+    if (activeData && activeItem && event.over) {
       const { fromCol, toCol, itemId } = activeData;
       const valid = Object.keys(columns).includes(toCol);
-      setColumns((prev) => {
-        const item = prev[fromCol].find((i) => i.id === itemId);
-        if (!item || !valid || fromCol === toCol || !event.over) return prev;
-        return {
-          ...prev,
-          [fromCol]: prev[fromCol].filter((i) => i.id !== itemId),
-          [toCol]: [...prev[toCol], item],
-        };
-      });
-      addEvent(
-        `${isLive ? "[LIVE]" : "[DEMO]"} moved “${activeItem?.title}” → ${
-          columnLabels[toCol]
-        }`
-      );
+
+      if (valid && fromCol !== toCol) {
+        setIsMoving(true);
+
+        setColumns((prev) => {
+          const item = prev[fromCol].find((i) => i.id === itemId)!;
+          return {
+            ...prev,
+            [fromCol]: prev[fromCol].filter((i) => i.id !== itemId),
+            [toCol]: [...prev[toCol], item],
+          };
+        });
+        if (isLive) {
+          await fetch("/api/jira/move", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ issueKey: itemId, toStatus: toCol }),
+          });
+
+          await new Promise((r) => setTimeout(r, 800));
+          await loadBoard();
+        }
+        setIsMoving(false);
+
+        addEvent(
+          `${isLive ? "[LIVE]" : "[DEMO]"} moved “${activeItem.title}” → ${
+            columnLabels[toCol]
+          }`
+        );
+      }
     }
+
+    // reset drag state
     setActiveId(null);
     setActiveData(null);
     setActiveItem(null);
   }
 
-  return (
-    <section className="bg-black py-6">
+  useEffect(() => {
+    if (isLive) {
+      fetch("/api/jira/board")
+        .then((r) => r.json())
+        .then(({ columns }) => setColumns(columns))
+        .catch(console.error);
+    }
+  }, [isLive]);
 
+  return (
+    <section className="bg-black py-2">
       {/* movethis ugly shit*/}
       <div className="max-w-7xl mx-auto px-6">
-        <div className="flex justify-end">
-          <label className="inline-flex items-center text-white">
-            <input
-              type="checkbox"
-              checked={isLive}
-              onChange={() => setIsLive((x) => !x)}
-              className="h-4 w-4"
-            />
-            <span className="ml-2 select-none">Live mode</span>
-          </label>
-        </div>
-
-
-        <DndContext
-          measuring={measuring}
-          sensors={sensors}
-          collisionDetection={pointerWithin}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDragEnd={handleDragEnd}
-        >
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {Object.entries(columns).map(([colId, items]) => (
-              <SortableContext
-                key={colId}
-                items={items.map((i) => `${colId}:${i.id}`)}
-                strategy={verticalListSortingStrategy}
-              >
-                <Column
-                  id={colId}
-                  label={columnLabels[colId]}
-                  items={items}
-                  activeId={activeId}
-                />
-              </SortableContext>
-            ))}
-          </div>
-
-          {/* drag preview */}
-          <DragOverlay
-            className="pointer-events-none transition-transform duration-300 ease-out"
+        <div className="relative">
+          <DndContext
+            measuring={measuring}
+            sensors={sensors}
+            collisionDetection={pointerWithin}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
           >
-            {activeItem && (
-              <Card
-                id={`overlay:${activeItem.id}`}
-                title={activeItem.title}
-                className="cursor-grabbing opacity-90 scale-105 shadow-xl"
-              />
-            )}
-          </DragOverlay>
-        </DndContext>
+            <div
+              className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6
+              ${isMoving ? "pointer-events-none opacity-50" : ""}`}
+            >
+              {Object.entries(columns).map(([colId, items]) => (
+                <SortableContext
+                  key={colId}
+                  items={items.map((i) => `${colId}:${i.id}`)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <Column
+                    id={colId}
+                    label={colId}
+                    items={items}
+                    activeId={activeId}
+                  />
+                </SortableContext>
+              ))}
+            </div>
 
+            {/* drag preview */}
+            <DragOverlay className="pointer-events-none transition-transform duration-300 ease-out">
+              {activeItem && (
+                <Card
+                  id={`overlay:${activeItem.id}`}
+                  title={activeItem.title}
+                  className="cursor-grabbing opacity-90 scale-105 shadow-xl"
+                />
+              )}
+            </DragOverlay>
+          </DndContext>
+          {isMoving && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="absolute inset-0 bg-black/80 animate-pulse" />
+
+              <span className="relative text-3xl font-extrabold text-white drop-shadow-lg">
+                Updating…
+              </span>
+            </div>
+          )}
+        </div>
         {/* should prolly be its own component */}
         <div className="mt-8 bg-white/5 p-4 rounded-lg text-white">
           <h3 className="mb-2 font-semibold">Activity Feed</h3>
@@ -187,7 +233,6 @@ export default function Board() {
             )}
           </div>
         </div>
-        
       </div>
     </section>
   );

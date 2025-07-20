@@ -23,23 +23,6 @@ import { Item } from "./types";
 
 type Columns = Record<string, Item[]>;
 
-const initialColumns: Columns = {
-  backlog: [
-    { id: "task-1", title: "Research competitors" },
-    { id: "task-2", title: "Draft project proposal" },
-    { id: "task-3", title: "Create wireframes" },
-  ],
-  progress: [
-    { id: "task-4", title: "Implement authentication" },
-    { id: "task-5", title: "Design database schema" },
-  ],
-  review: [],
-  done: [
-    { id: "task-6", title: "Setup project repository" },
-    { id: "task-7", title: "Configure CI/CD pipeline" },
-  ],
-};
-
 const columnLabels: Record<string, string> = {
   backlog: "Backlog",
   progress: "In Progress",
@@ -47,8 +30,14 @@ const columnLabels: Record<string, string> = {
   done: "Done",
 };
 
-interface BoardProps { isLive: boolean }
-export default function Board({ isLive }: BoardProps) {  const [columns, setColumns] = useState(initialColumns);
+interface BoardProps {
+  isLive: boolean;
+}
+export default function Board({ isLive }: BoardProps) {
+  const [columns, setColumns] = useState<Columns>({});
+  const [colToStatusId, setColToStatusId] = useState<Record<string, string>>(
+    {}
+  );
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeData, setActiveData] = useState<{
     fromCol: string;
@@ -75,8 +64,9 @@ export default function Board({ isLive }: BoardProps) {  const [columns, setColu
   async function loadBoard() {
     try {
       const res = await fetch("/api/jira/board");
-      const { columns } = await res.json();
+      const { columns, colToStatusId } = await res.json();
       setColumns(columns);
+      setColToStatusId(colToStatusId);
     } catch (err) {
       console.error("Failed to reload board:", err);
     }
@@ -130,11 +120,21 @@ export default function Board({ isLive }: BoardProps) {  const [columns, setColu
           };
         });
         if (isLive) {
-          await fetch("/api/jira/move", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ issueKey: itemId, toStatus: toCol }),
-          });
+          if (isLive) {
+
+            // call move
+            await fetch("/api/jira/move", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                issueKey: itemId,
+                toStatusId: colToStatusId[toCol],
+              }),
+            });
+
+            await new Promise((r) => setTimeout(r, 800));
+            await loadBoard();
+          }
 
           await new Promise((r) => setTimeout(r, 800));
           await loadBoard();

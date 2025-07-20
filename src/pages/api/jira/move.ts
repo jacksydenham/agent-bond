@@ -1,11 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// src/pages/api/jira/move.ts
 import type { NextApiRequest, NextApiResponse } from "next";
-
-type MoveBody = {
-  issueKey: string;     // e.g. "PROJ-123"
-  toStatus: string;     // e.g. "In Progress"
-};
+import { ensureAccess, getMeta } from "src/app/lib/jira";
 
 export default async function handler(
   req: NextApiRequest,
@@ -13,72 +8,76 @@ export default async function handler(
 ) {
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
-    return res.status(405).end("Method Not Allowed");
+    return res.status(405).end();
   }
-
-  const { issueKey, toStatus } = req.body as MoveBody;
-  const {
-    JIRA_BASE_URL,
-    JIRA_EMAIL,
-    JIRA_API_TOKEN,
-  } = process.env;
-
-  if (!JIRA_BASE_URL || !JIRA_EMAIL || !JIRA_API_TOKEN) {
-    return res
-      .status(500)
-      .json({ error: "Missing JIRA_BASE_URL, JIRA_EMAIL or JIRA_API_TOKEN" });
-  }
-
-  const auth = Buffer.from(`${JIRA_EMAIL}:${JIRA_API_TOKEN}`).toString(
-    "base64"
-  );
 
   try {
-    // 1) Fetch available transitions for this issue
-    const transitionsRes = await fetch(
-      `${JIRA_BASE_URL}/rest/api/3/issue/${issueKey}/transitions`,
+    const meta = getMeta(req);
+    const token = await ensureAccess(req, res);
+    if (!meta.boardId) throw new Error("No board selected");
+
+    const { issueKey, toStatusId } = req.body as {
+      issueKey?: string;
+      toStatusId?: string;
+    };
+    if (!issueKey || !toStatusId) {
+      return res.status(400).json({ error: "Missing issueKey or toStatusId" });
+    }
+
+    const base = `https://api.atlassian.com/ex/jira/${meta.cloudId}`;
+
+    // get transitions for held issue
+    const listRes = await fetch(
+      `${base}/rest/api/3/issue/${issueKey}/transitions`,
       {
         headers: {
-          Authorization: `Basic ${auth}`,
+          Authorization: `Bearer ${token}`,
           Accept: "application/json",
         },
       }
     );
-    const { transitions } = await transitionsRes.json() as {
-      transitions: Array<{ id: string; to: { name: string } }>;
-    };
 
-    // 2) Find the transition ID whose target status matches toStatus
-    const match = transitions.find((t) => t.to.name === toStatus);
-    if (!match) {
+    if (!listRes.ok) {
+      const text = await listRes.text();
       return res
-        .status(400)
-        .json({ error: `No transition found to status "${toStatus}"` });
+        .status(500)
+        .json({
+          error: `Failed to list transitions (${listRes.status})`,
+          text,
+        });
     }
 
-    // 3) Perform the transition
+    const { transitions = [] } = await listRes.json();
+    const transition = transitions.find((t: any) => t.to?.id === toStatusId);
+
+    if (!transition) {
+      return res
+        .status(400)
+        .json({ error: `No transition to statusId "${toStatusId}"` });
+    }
+
+    // move
     const doRes = await fetch(
-      `${JIRA_BASE_URL}/rest/api/3/issue/${issueKey}/transitions`,
+      `${base}/rest/api/3/issue/${issueKey}/transitions`,
       {
         method: "POST",
         headers: {
-          Authorization: `Basic ${auth}`,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ transition: { id: match.id } }),
+        body: JSON.stringify({ transition: { id: transition.id } }),
       }
     );
 
     if (!doRes.ok) {
       const text = await doRes.text();
       return res
-        .status(doRes.status)
-        .json({ error: `Jira move failed: ${text}` });
+        .status(500)
+        .json({ error: `Transition failed (${doRes.status})`, text });
     }
 
-    return res.status(200).json({ success: true });
-  } catch (err: any) {
-    console.error("Jira move error:", err);
-    return res.status(500).json({ error: err.message || err });
+    return res.status(204).end();
+  } catch (e: any) {
+    return res.status(500).json({ error: e.message });
   }
 }

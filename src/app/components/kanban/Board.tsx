@@ -21,8 +21,6 @@ import Column from "./Column";
 import Card from "./Card";
 import { Item } from "./types";
 
-type Columns = Record<string, Item[]>;
-
 const columnLabels: Record<string, string> = {
   backlog: "Backlog",
   progress: "In Progress",
@@ -34,10 +32,10 @@ interface BoardProps {
   isLive: boolean;
 }
 export default function Board({ isLive }: BoardProps) {
-  const [columns, setColumns] = useState<Columns>({});
-  const [colToStatusId, setColToStatusId] = useState<Record<string, string>>(
-    {}
-  );
+  const [columns, setColumns] = useState<Record<string, Item[]>>({});
+  const [colToStatusId, setColToStatusId] = useState<
+    Record<string, string>
+  >({});
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeData, setActiveData] = useState<{
     fromCol: string;
@@ -154,6 +152,10 @@ export default function Board({ isLive }: BoardProps) {
     setActiveData(null);
     setActiveItem(null);
   }
+
+  useEffect(() => {
+    loadBoard().catch(console.error);
+  }, [])
 
   useEffect(() => {
     if (isLive) {

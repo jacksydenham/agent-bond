@@ -38,24 +38,15 @@ client.on("interactionCreate", async (i) => {
   const receiver = await joinVoice(ch);
   console.log(`[JOIN] Connected to voice channel: ${ch.name}`);
 
-  // ---- TRANSCRIPT LOOP -------------------------------------------------
   listenAndTranscribe(receiver, async (sentence: string) => {
-    console.log("🗣", sentence); // terminal log
+    console.log("🗣", sentence);
 
     await i.followUp(`🗣 **${member.displayName}:** ${sentence}`);
 
-    /*  ---- later, when you’re ready for AI/Jira ----
-    const r = await fetch("http://localhost:3000/api/nlp", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: sentence, speaker: member.displayName }),
-    });
-    const intent = await r.json() as NlpIntent;
-    if (intent.ok) { … post Approve button … }
-    -------------------------------------------------- */
+    // ai shit here once transcript working
+
   });
 });
 
-// -----------------------------------------------------------------------
 
 client.login(process.env.DISCORD_TOKEN!);

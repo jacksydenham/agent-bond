@@ -11,15 +11,14 @@ const commands = [
 async function main() {
   const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN!);
 
-  // Guild you want to install slash‑commands into
+  // why tf does this goofy company call it a guild...
   const guildId = process.env.TEST_GUILD_ID!;
-  const appId   = process.env.DISCORD_CLIENT_ID!;
+  const appId = process.env.DISCORD_CLIENT_ID!;
 
   console.log("🔄 Registering /bondjoin …");
-  await rest.put(
-    Routes.applicationGuildCommands(appId, guildId),
-    { body: commands }
-  );
+  await rest.put(Routes.applicationGuildCommands(appId, guildId), {
+    body: commands,
+  });
   console.log("✅ Slash command registered.");
 }
 main().catch(console.error);

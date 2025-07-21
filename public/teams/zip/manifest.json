@@ -1,0 +1,54 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.16/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.16",
+  "version": "1.0.0",
+
+  "id": "391f6fbb-03fc-454b-8186-3597ce5f67dd",
+
+  "packageName": "com.agentbond",
+
+  "name": {
+    "short": "Agent Bond",
+    "full": "Agent Bond Dashboard"
+  },
+
+  "description": {
+    "short": "Voice-driven Jira control",
+    "full": "Move and create Jira issues via Teams meeting speech directly from your meeting."
+  },
+
+  "developer": {
+    "name": "Jack Sydenham",
+    "websiteUrl": "https://63f9c85d6913.ngrok-free.app",
+    "privacyUrl": "https://63f9c85d6913.ngrok-free.app/privacy",
+    "termsOfUseUrl": "https://63f9c85d6913.ngrok-free.app/terms"
+  },
+
+  "icons": {
+    "outline": "teams/outline.png",
+    "color":   "teams/color.png"
+  },
+
+  "accentColor": "#D4AF37",
+
+  "validDomains": [
+    "63f9c85d6913.ngrok-free.app"
+  ],
+
+  "meetingExtensionDefinition": {
+    "configurationUrl": "https://63f9c85d6913.ngrok-free.app/teams/meeting",
+    "scopes": [ "meeting" ]
+  },
+
+  "bots": [
+    {
+      "botId": "391f6fbb-03fc-454b-8186-3597ce5f67dd",
+      "scopes": [ "personal", "team", "groupchat" ]
+    }
+  ],
+
+  "permissions": [
+    "identity",
+    "messageTeamMembers"
+  ]
+}

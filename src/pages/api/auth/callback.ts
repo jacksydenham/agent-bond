@@ -8,7 +8,7 @@ export default async function handler(
   const code = req.query.code as string;
   if (!code) return res.status(400).send("Missing code");
 
-  // Token handshake
+  // token handshake
   const td = await fetch("https://auth.atlassian.com/oauth/token", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

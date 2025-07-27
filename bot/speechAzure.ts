@@ -30,7 +30,8 @@ export async function joinVoice(
 
 export function listenAndTranscribe(
   receiver: VoiceReceiver,
-  onSentence: (t: string) => void
+  onSentence: (t: string) => void,
+  onEnd?: () => void
 ) {
   receiver.speaking.on("start", (userId) => {
     console.log(`[VOICE] ${userId} started speaking`);
@@ -41,8 +42,10 @@ export function listenAndTranscribe(
     });
 
     opusStream.on("error", (e) => console.error("[VOICE] opus error", e));
-    opusStream.on("close", () => console.log("[VOICE] opus closed"));
-
+    opusStream.on("close", () => {
+      console.log("[VOICE] opus closed");
+      onEnd?.();
+    });
     // decode opus
     const pcmStream = opusStream.pipe(
       new prism.opus.Decoder({ channels: 1, rate: 16000, frameSize: 320 })
@@ -51,8 +54,10 @@ export function listenAndTranscribe(
     // send stream to azure
     pcmStream.on("data", (b) => pushStream.write(b));
     pcmStream.on("error", (e) => console.error("[PCM] error", e));
-    pcmStream.on("end", () => pushStream.close());
-
+    pcmStream.on("end", () => {
+      pushStream.close();
+      onEnd?.();
+    });
     const speechConfig = sdk.SpeechConfig.fromSubscription(
       process.env.AZURE_KEY!,
       process.env.AZURE_REGION!

@@ -16,10 +16,12 @@ function customAnimateLayoutChanges(args: any) {
 export default function SortableCard({
   id,
   title,
+  comments,
   activeId,
 }: {
   id: string;
   title: string;
+  comments: string[];
   activeId: string | null;
 }) {
   const {
@@ -42,6 +44,7 @@ export default function SortableCard({
       ref={setNodeRef}
       id={id}
       title={title}
+      comments={comments}
       style={style}
       className={cn(
         isActive

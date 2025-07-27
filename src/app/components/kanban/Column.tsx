@@ -33,6 +33,7 @@ export default function Column({ id, label, items, activeId }: ColumnProps) {
             key={item.id}
             id={item.id}
             title={item.title}
+            comments={item.comments}
             activeId={activeId}
           />
         ))}

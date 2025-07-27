@@ -15,13 +15,18 @@
     "@microsoft/teams-js": "^2.40.0",
     "botbuilder": "^4.17.0-blobs1",
     "cookie": "^1.0.2",
+    "discord.js": "^14.21.0",
+    "express": "^5.1.0",
     "js-cookie": "^3.0.5",
     "next": "15.3.5",
+    "node-fetch": "^3.3.2",
     "openai": "^5.10.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-hot-toast": "^2.5.2",
     "react-icons": "^5.5.0",
-    "restify": "^11.1.0"
+    "restify": "^11.1.0",
+    "toast": "^0.5.4"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
